@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:mis_calificaciones/UI/cortesView.dart';
 import 'package:mis_calificaciones/UI/materiasView.dart';
 
 class MainPage extends StatefulWidget {

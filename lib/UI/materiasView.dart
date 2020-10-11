@@ -30,10 +30,10 @@ class _MateriasState extends State<Materias> {
     if (notas.read(materias.read(widget.materia.toString())) != null) {
       for (var element
           in notas.read(materias.read(widget.materia.toString()))) {
-            if(element["corte"]==widget.corte.toString()){
-              calificaciones.add(element);
-              def += calculateTotal(element["nota"], element["porcent"]);
-            }
+        if (element["corte"] == widget.corte.toString()) {
+          calificaciones.add(element);
+          def += calculateTotal(element["nota"], element["porcent"]);
+        }
       }
     }
     Future.delayed(Duration(seconds: 2)).whenComplete(() {
@@ -41,8 +41,6 @@ class _MateriasState extends State<Materias> {
         print('update');
       });
     });
-
-    //calificaciones.addAll(notas.getValues());
   }
 
   @override
@@ -54,7 +52,8 @@ class _MateriasState extends State<Materias> {
           GestureDetector(
             onTap: () {
               actualizar();
-              Future.delayed(Duration(seconds: 1)).whenComplete(() => Navigator.pop(context));
+              Future.delayed(Duration(seconds: 1))
+                  .whenComplete(() => Navigator.pop(context));
 
               setState(() {});
             },
@@ -77,7 +76,7 @@ class _MateriasState extends State<Materias> {
                 child: Icon(Icons.note_add)),
           )
         ],
-        title: Text(widget.tittle+ "  definitiva: "+def.toString()),
+        title: Text(widget.tittle + "  : " + def.toString()),
         centerTitle: true,
       ),
       body: Container(
@@ -143,22 +142,31 @@ class _MateriasState extends State<Materias> {
   }
 
   actualizar() async {
+    calificaciones = new List<Map>();
+    actividades = new List<Map>();
+    if (notas.read(materias.read(widget.materia.toString())) != null) {
+      for (var element
+          in notas.read(materias.read(widget.materia.toString()))) {
+        if (element["corte"] == widget.corte.toString()) {
+          calificaciones.add(element);
+          def += calculateTotal(element["nota"], element["porcent"]);
+        }
+      }
+    }
+    print('object222');
     await showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             content: Container(
-                height: 500,
-                width: 500,
+                height: 100,
+                width: 100,
                 child: Center(child: CircularProgressIndicator())),
           );
         });
   }
 
   dialogError() async {
-    setState(() {
-      notas.read('IA');
-    });
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -223,35 +231,28 @@ class _MateriasState extends State<Materias> {
                       ),
                       color: Colors.blue,
                       onPressed: () {
-                        calificaciones = new List<Map>();
-                        actividades = new List<Map>();
-                        for (var element in notas.getValues().toList()) {
-                          for (var item in element) {
-                            calificaciones.add(item);
-                          }
-                        }
-                        for (var activity in calificaciones) {
-                          if (activity["corte"] == widget.corte.toString()) {
-                            actividades.add(activity);
-                          }
-                        }
-                        Map<String, String> _notas = {
-                          "activity": "",
-                          "nota": "",
-                          "porcent": "",
-                          "corte": ""
-                        };
-                        _notas["activity"] = _name.text;
-                        _notas["nota"] = _value.text;
-                        _notas["porcent"] = _porcent.text;
-                        _notas["corte"] = widget.corte.toString();
-                        calificaciones.add(_notas);
                         try {
-                          double.tryParse(_notas["porcent"]);
-                          double.tryParse(_notas["nota"]);
+                          double.tryParse(_value.text);
+                          double.tryParse(_porcent.text);
                           notas.write(
                               materias.read((widget.materia).toString()),
                               calificaciones);
+                          if (calculateTotal(_value.text, _porcent.text) < 1.5) {
+                            actualizar();
+                            Map<String, String> _notas = {
+                              "activity": "",
+                              "nota": "",
+                              "porcent": "",
+                              "corte": ""
+                            };
+                            _notas["activity"] = _name.text;
+                            _notas["nota"] = _value.text;
+                            _notas["porcent"] = _porcent.text;
+                            _notas["corte"] = widget.corte.toString();
+                            calificaciones.add(_notas);
+                          }else{
+                            dialogError();
+                          }
                         } catch (e) {
                           dialogError();
                         }
