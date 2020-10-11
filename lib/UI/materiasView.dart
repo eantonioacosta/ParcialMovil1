@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 
 class Materias extends StatefulWidget {
@@ -11,6 +12,7 @@ class Materias extends StatefulWidget {
 }
 
 class _MateriasState extends State<Materias> {
+  double def = 0;
   List<Map> calificaciones;
   final materias = GetStorage("materias");
   final notas = GetStorage("notas");
@@ -25,20 +27,19 @@ class _MateriasState extends State<Materias> {
     super.initState();
     calificaciones = new List<Map>();
     actividades = new List<Map>();
-    if (notas != null) {
-      for (var element in notas.getValues().toList()) {
-        for (var item in element) {
-          calificaciones.add(item);
-        }
-      }
-    }
-    for (var activity in calificaciones) {
-      if (activity["corte"] == widget.corte.toString()) {
-        actividades.add(activity);
+    if (notas.read(materias.read(widget.materia.toString())) != null) {
+      for (var element
+          in notas.read(materias.read(widget.materia.toString()))) {
+            if(element["corte"]==widget.corte.toString()){
+              calificaciones.add(element);
+              def += calculateTotal(element["nota"], element["porcent"]);
+            }
       }
     }
     Future.delayed(Duration(seconds: 2)).whenComplete(() {
-      setState(() {});
+      setState(() {
+        print('update');
+      });
     });
 
     //calificaciones.addAll(notas.getValues());
@@ -50,6 +51,18 @@ class _MateriasState extends State<Materias> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         actions: [
+          GestureDetector(
+            onTap: () {
+              actualizar();
+              Future.delayed(Duration(seconds: 1)).whenComplete(() => Navigator.pop(context));
+
+              setState(() {});
+            },
+            child: Icon(
+              Icons.update,
+              color: Colors.green[400],
+            ),
+          ),
           GestureDetector(
             onTap: () => deleteAll(),
             child: Icon(
@@ -64,13 +77,13 @@ class _MateriasState extends State<Materias> {
                 child: Icon(Icons.note_add)),
           )
         ],
-        title: Text(widget.tittle),
+        title: Text(widget.tittle+ "  definitiva: "+def.toString()),
         centerTitle: true,
       ),
       body: Container(
-        child: actividades != null
+        child: calificaciones.length > 0
             ? ListView.builder(
-                itemCount: actividades.length,
+                itemCount: calificaciones.length,
                 itemBuilder: (_, counter) => Container(
                   decoration: BoxDecoration(
                       color: Colors.blueAccent.withAlpha(40),
@@ -82,7 +95,7 @@ class _MateriasState extends State<Materias> {
                       Row(
                         children: [
                           Center(
-                            child: Text(actividades[counter]["activity"],
+                            child: Text(calificaciones[counter]["activity"],
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
@@ -91,17 +104,19 @@ class _MateriasState extends State<Materias> {
                           SizedBox(
                             width: 10,
                           ),
-                          Text('Nota'),
+                          Text(calculateTotal(calificaciones[counter]["nota"],
+                                  calificaciones[counter]["porcent"])
+                              .toString()),
                           Expanded(
                             child: SizedBox(
                               height: 10,
                             ),
                           ),
-                          Text(actividades[counter]["nota"]),
+                          Text(calificaciones[counter]["nota"]),
                           SizedBox(
                             width: 10,
                           ),
-                          Text(actividades[counter]["porcent"] + "%"),
+                          Text(calificaciones[counter]["porcent"] + "%"),
                         ],
                       )
                     ],
@@ -109,17 +124,48 @@ class _MateriasState extends State<Materias> {
                 ),
               )
             : Center(
-                child: Text('A;ada notas'),
+                child: Text('Añada notas'),
               ),
       ),
     );
   }
 
+  double calculateTotal(String value, String porcent) {
+    return double.parse(value) * (double.parse(porcent) / 100);
+  }
+
   deleteAll() {
     notas.erase();
-    Future.delayed(Duration(milliseconds: 500)).whenComplete(() {
+    Future.delayed(Duration(milliseconds: 1000)).whenComplete(() {
       setState(() {});
+      Navigator.pop(context);
     });
+  }
+
+  actualizar() async {
+    await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            content: Container(
+                height: 500,
+                width: 500,
+                child: Center(child: CircularProgressIndicator())),
+          );
+        });
+  }
+
+  dialogError() async {
+    setState(() {
+      notas.read('IA');
+    });
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            content: Text('Error en los datos de entrada, verifique'),
+          );
+        });
   }
 
   addNota() {
@@ -145,7 +191,8 @@ class _MateriasState extends State<Materias> {
                         width: MediaQuery.of(context).size.width * 0.4,
                         child: Card(
                           child: TextField(
-                            maxLength: 1,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
                             decoration: InputDecoration(hintText: "Nota"),
                             controller: _value,
                           ),
@@ -154,6 +201,10 @@ class _MateriasState extends State<Materias> {
                       Expanded(
                         child: Card(
                           child: TextField(
+                            inputFormatters: <TextInputFormatter>[
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            keyboardType: TextInputType.number,
                             maxLength: 3,
                             decoration: InputDecoration(hintText: "%"),
                             controller: _porcent,
@@ -167,7 +218,7 @@ class _MateriasState extends State<Materias> {
                   ),
                   RaisedButton(
                       child: Text(
-                        'A;adir',
+                        'Add',
                         style: TextStyle(color: Colors.white),
                       ),
                       color: Colors.blue,
@@ -184,7 +235,6 @@ class _MateriasState extends State<Materias> {
                             actividades.add(activity);
                           }
                         }
-                        print(widget.corte);
                         Map<String, String> _notas = {
                           "activity": "",
                           "nota": "",
@@ -196,9 +246,20 @@ class _MateriasState extends State<Materias> {
                         _notas["porcent"] = _porcent.text;
                         _notas["corte"] = widget.corte.toString();
                         calificaciones.add(_notas);
-                        //notas.write(materias.read((widget.materia).toString()), calificaciones);
+                        try {
+                          double.tryParse(_notas["porcent"]);
+                          double.tryParse(_notas["nota"]);
+                          notas.write(
+                              materias.read((widget.materia).toString()),
+                              calificaciones);
+                        } catch (e) {
+                          dialogError();
+                        }
+
                         // _name.clear();
-                        setState(() {});
+                        setState(() {
+                          print('updatenote');
+                        });
                       }),
                 ],
               ),

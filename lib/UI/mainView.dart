@@ -102,7 +102,7 @@ class _MainPageState extends State<MainPage> {
                   ),
                   )
               : Center(
-                  child: Text('A;ada Materias'),
+                  child: Text('Add Materias'),
                 )),
     );
   }
